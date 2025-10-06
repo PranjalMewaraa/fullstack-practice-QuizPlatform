@@ -137,9 +137,13 @@ export default {
   ) => api.get(`/api/reports/time${qs(params)}`).then((r) => r.data),
   groupOverview: (params = { page: 1, limit: 10, orderBy: "avgScore" }) =>
     api.get(`/api/reports/group${qs(params)}`).then((r) => r.data),
-  skillLeaderboard: (skillId, params = { minAnswers: 1, limit: 10 }) =>
+  // services/api.js (ensure this exists)
+  skillLeaderboard: (skillId, { minAnswers = 3, limit = 20 } = {}) =>
     api
-      .get(`/api/reports/skill/${skillId}/leaderboard${qs(params)}`)
+      .get(`/api/reports/skill/${skillId}/leaderboard`, {
+        params: { minAnswers, limit },
+      })
       .then((r) => r.data),
+
   getUsers: () => api.get("/api/users").then((r) => r.data),
 };

@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import Card from "../../components/ui/Card";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
+import DataTable from "../../components/ui/DataTable";
 import api from "../../services/api";
-import { Edit2, Trash2, X } from "lucide-react";
+import { Edit2, Trash2, X, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function Skills() {
@@ -11,6 +12,7 @@ export default function Skills() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const nav = useNavigate();
+
   // create form
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -22,6 +24,15 @@ export default function Skills() {
   const [editDesc, setEditDesc] = useState("");
   const [editErr, setEditErr] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // leaderboard modal
+  const [lbOpen, setLbOpen] = useState(false);
+  const [lbSkill, setLbSkill] = useState(null);
+  const [lbRows, setLbRows] = useState([]);
+  const [lbLoading, setLbLoading] = useState(false);
+  const [lbErr, setLbErr] = useState("");
+  const [lbMinAnswers, setLbMinAnswers] = useState(3);
+  const [lbLimit, setLbLimit] = useState(20);
 
   async function load() {
     setLoading(true);
@@ -96,7 +107,6 @@ export default function Skills() {
   }
 
   async function remove(id) {
-    // 1st try: safe delete (no cascade)
     const yes = window.confirm(
       "Delete this skill? This will fail if questions reference it."
     );
@@ -110,7 +120,6 @@ export default function Skills() {
       const status = e?.response?.status;
       const msg = e?.response?.data?.message || e.message;
 
-      // If backend says there are linked questions (409), offer force delete
       if (status === 409) {
         const qCount = e?.response?.data?.questions;
         const confirmForce = window.confirm(
@@ -131,6 +140,38 @@ export default function Skills() {
 
       alert(msg);
     }
+  }
+
+  // ---- Leaderboard ----
+  async function openLeaderboard(skill) {
+    setLbSkill(skill);
+    setLbRows([]);
+    setLbErr("");
+    setLbOpen(true);
+    await fetchLeaderboard(skill.id, lbMinAnswers, lbLimit);
+  }
+
+  async function fetchLeaderboard(skillId, minAnswers, limit) {
+    try {
+      setLbLoading(true);
+      setLbErr("");
+      const rows = await api.skillLeaderboard(skillId, {
+        minAnswers,
+        limit,
+      });
+      setLbRows(rows);
+    } catch (e) {
+      setLbErr(e?.response?.data?.message || e.message);
+    } finally {
+      setLbLoading(false);
+    }
+  }
+
+  function closeLeaderboard() {
+    setLbOpen(false);
+    setLbSkill(null);
+    setLbRows([]);
+    setLbErr("");
   }
 
   return (
@@ -191,14 +232,24 @@ export default function Skills() {
                     <td className="py-2 px-3">{r.name}</td>
                     <td className="py-2 px-3">{r.description || "—"}</td>
                     <td className="py-2 px-3">
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
-                          title="Create Quiz"
+                          title="View Quizzes"
                           onClick={() => nav(`/admin/${r.name}/${r.id}/quizes`)}
-                          className="bg-blue-500 p-4"
+                          className="bg-blue-500 text-black border-blue-500"
                         >
-                          View Quiz
+                          View Quizzes
                         </Button>
+
+                        {/* NEW: Leaderboard */}
+                        <Button
+                          title="Show Leaderboard"
+                          onClick={() => openLeaderboard(r)}
+                          className="!px-3 !bg-amber-50 border-amber-200 text-amber-700 hover:!bg-amber-100 flex items-center gap-2"
+                        >
+                          <Trophy size={16} /> Leaderboard
+                        </Button>
+
                         <Button
                           className="!px-3"
                           onClick={() => openEdit(r)}
@@ -264,6 +315,95 @@ export default function Skills() {
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leaderboard Modal */}
+      {lbOpen && lbSkill && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={closeLeaderboard}
+          />
+          <div className="relative z-50 w-full max-w-3xl rounded-2xl bg-white shadow-xl border p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">
+                Leaderboard — {lbSkill.name}
+              </h3>
+              <button
+                onClick={closeLeaderboard}
+                className="p-2 rounded-xl hover:bg-gray-100"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap gap-3 mb-3">
+              <label className="text-sm text-gray-600">
+                Min answers
+                <select
+                  className="ml-2 rounded-xl border px-3 py-2"
+                  value={lbMinAnswers}
+                  onChange={async (e) => {
+                    const v = Number(e.target.value);
+                    setLbMinAnswers(v);
+                    await fetchLeaderboard(lbSkill.id, v, lbLimit);
+                  }}
+                >
+                  <option value={1}>1</option>
+                  <option value={3}>3</option>
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                </select>
+              </label>
+              <label className="text-sm text-gray-600">
+                Limit
+                <select
+                  className="ml-2 rounded-xl border px-3 py-2"
+                  value={lbLimit}
+                  onChange={async (e) => {
+                    const v = Number(e.target.value);
+                    setLbLimit(v);
+                    await fetchLeaderboard(lbSkill.id, lbMinAnswers, v);
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </label>
+              <Button
+                onClick={() =>
+                  fetchLeaderboard(lbSkill.id, lbMinAnswers, lbLimit)
+                }
+              >
+                Refresh
+              </Button>
+            </div>
+
+            {lbLoading ? (
+              <div className="text-gray-500">Loading leaderboard…</div>
+            ) : lbErr ? (
+              <div className="text-red-600">{lbErr}</div>
+            ) : lbRows.length === 0 ? (
+              <div className="text-gray-500">
+                No users meet the criteria yet.
+              </div>
+            ) : (
+              <DataTable
+                columns={[
+                  { header: "User", accessor: "name" },
+                  { header: "Email", accessor: "email" },
+                  { header: "Total Answers", accessor: "total" },
+                  { header: "Correct", accessor: "correct" },
+                  { header: "Accuracy (%)", accessor: "accuracy" },
+                ]}
+                rows={lbRows}
+              />
+            )}
           </div>
         </div>
       )}

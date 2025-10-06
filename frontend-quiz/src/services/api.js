@@ -56,6 +56,17 @@ export default {
    *  - q (search in question_text)
    *  - skillId (filter by skill)
    */
+  // services/api.js
+  getAttemptsByUser: (
+    userId,
+    { page = 1, limit = 20, withAnswers = false, quizId } = {}
+  ) =>
+    api
+      .get(`/api/quiz/attempts/${userId}`, {
+        params: { page, limit, withAnswers, quizId },
+      })
+      .then((r) => r.data),
+
   getQuizzesBySkill: (skillId) =>
     api.get(`/api/skills/${skillId}/quizzes`).then((r) => r.data),
   createQuiz: (skillId, d) =>

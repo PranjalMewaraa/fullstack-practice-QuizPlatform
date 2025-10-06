@@ -197,7 +197,7 @@ export default function Skills() {
                           onClick={() => nav(`/admin/${r.name}/${r.id}/quizes`)}
                           className="bg-blue-500 p-4"
                         >
-                          Create Quiz
+                          View Quiz
                         </Button>
                         <Button
                           className="!px-3"

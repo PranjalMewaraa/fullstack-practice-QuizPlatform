@@ -4,7 +4,7 @@ import axios from "axios";
 const api = axios.create({
   baseURL:
     import.meta.env.VITE_API_BASE ||
-    "fullstack-practice-quizplatform-production.up.railway.app",
+    "https://fullstack-practice-quizplatform-2.onrender.com",
 });
 
 // ---- Auth header handling ----

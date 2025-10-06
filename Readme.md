@@ -4,6 +4,7 @@
   A complete Quiz Management System built with <strong>Node.js</strong> (Backend) and <strong>React</strong> (Frontend).<br/>
   Supports Admin & User roles, Scoring, Reports, and Skill-based Quizzes.
 </p>
+<a href="https://quiz-task-master-o.netlify.app/">Live Demo link</a>
 
 <hr/>
 
